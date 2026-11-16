@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Alert Recall Test</title>
+<style>
+  :root {
+    --bg: #12161c;
+    --panel: #1a2029;
+    --panel-2: #222b37;
+    --line: #2f3a49;
+    --text: #e6edf5;
+    --muted: #93a1b3;
+    --accent: #4cc2ff;
+    --warn: #ffb84c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-top: 16px; }
+  button { background: var(--accent); color: #04202d; border: 0; border-radius: 8px; padding: 12px 20px;
+    font-size: 16px; font-weight: 600; cursor: pointer; }
+  button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .hidden { display: none !important; }
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .dash { background: #0d1117; border: 1px solid var(--line); border-radius: 8px; padding: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 18px; min-height: 120px; }
+  .alert-line { padding: 6px 10px; border-left: 4px solid var(--warn); background: #151b24; margin-bottom: 6px; border-radius: 4px; }
+  .alert-line.ok { border-left-color: #3ddc84; }
+  .alert-line.miss { border-left-color: #ff5d5d; }
+  .mark-ok { color: #3ddc84; font-weight: 700; margin-right: 8px; }
+  .mark-miss { color: #ff5d5d; font-weight: 700; margin-right: 8px; }
+  .extras { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  .group { margin-bottom: 12px; }
+  .group-head { color: var(--accent); font-weight: 700; letter-spacing: .06em; margin-bottom: 6px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin-top: 12px; }
+  .bar > div { height: 100%; width: 100%; background: var(--accent); transform-origin: left; }
+  textarea { width: 100%; min-height: 220px; background: #0d1117; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 16px; resize: vertical; }
+  code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .note { color: var(--warn); font-size: 14px; }
+  label.check { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+  label.check input { margin-top: 5px; width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- CONSENT -->
+  <section id="screen-consent">
+    <h1>Dashboard Alert Recall Test</h1>
+    <p class="sub">A short memory task for a Georgia Tech cognitive science class project</p>
+    <div class="panel">
+      <h2>Before you start</h2>
+      <p>This is a short memory test. You will see lists of factory-style alert names on the screen for a few seconds, then type back as many as you can remember. It takes about 10 minutes.</p>
+      <p>Your participation is voluntary and you can stop at any time by closing the page. No names or personal information are collected. Your results are linked only to a random code. The researcher will use the results, together with other participants' results, in a class project report.</p>
+      <p>Please do not write anything down while the alerts are on screen, and do not take screenshots.</p>
+      <label class="check"><input type="checkbox" id="consent-check"> <span>I am 18 or older, I understand the above, and I agree to take part.</span></label>
+      <div class="row"><button id="btn-consent" disabled>Continue</button></div>
+    </div>
+  </section>
+
+  <!-- INSTRUCTIONS -->
+  <section id="screen-instructions" class="hidden">
+    <h1>How it works</h1>
+    <div class="panel">
+      <p>Each round, a factory dashboard will show a list of alerts for <b>8 seconds</b>. Then it disappears. Type back every <b>alert</b> you remember.</p>
+      <p>Each alert is a single word, like a machine part. Type <b>one word per line</b>, in any order, like this:</p>
+      <p><code>TURBINE</code></p>
+      <p>Guessing is fine. Small typos are OK. After each round you will see which alerts you got right (green) and which you missed (red).</p>
+      <p>First you will do one <b>practice round</b> that does not count. Then there are 10 scored rounds. The lists get longer as you go. Some rounds show the alerts grouped under labels like FLUID or SAFETY, and some show them in a plain list.</p>
+      <div class="row"><button id="btn-start-practice">Start practice round</button></div>
+    </div>
+  </section>
+
+  <!-- READY -->
+  <section id="screen-ready" class="hidden">
+    <div class="topbar"><span id="ready-label"></span><span id="ready-progress"></span></div>
+    <div class="panel">
+      <p id="ready-text">Get ready. The alerts will appear for 8 seconds.</p>
+      <div class="row"><button id="btn-show">Show alerts</button></div>
+    </div>
+  </section>
+
+  <!-- SHOW -->
+  <section id="screen-show" class="hidden">
+    <div class="topbar"><span id="show-label"></span><span>Memorize as many alerts as you can</span></div>
+    <div class="dash" id="dash"></div>
+    <div class="bar"><div id="bar"></div></div>
+  </section>
+
+  <!-- RECALL -->
+  <section id="screen-recall" class="hidden">
+    <div class="topbar"><span id="recall-label"></span><span>One word per line</span></div>
+    <div class="panel">
+      <p>Type every alert you remember, one word per line. Example: <code>TURBINE</code></p>
+      <textarea id="recall-box" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="TURBINE"></textarea>
+      <div class="row"><button id="btn-submit">Submit</button></div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section id="screen-feedback" class="hidden">
+    <div class="topbar"><span id="fb-label"></span><span id="fb-score"></span></div>
+    <div class="dash" id="fb-list"></div>
+    <div class="extras" id="fb-extras"></div>
+    <div class="row"><button id="btn-next">Next</button></div>
+  </section>
+
+  <!-- PRACTICE DONE -->
+  <section id="screen-practice-done" class="hidden">
+    <h1>Practice round complete</h1>
+    <div class="panel">
+      <p id="practice-result"></p>
+      <p>The real test has 10 rounds. The lists get longer. After each round you will see which alerts you got right. Ready?</p>
+      <div class="row"><button id="btn-start-real">Start the test</button></div>
+    </div>
+  </section>
+
+  <!-- BREAK -->
+  <section id="screen-break" class="hidden">
+    <h1>Halfway there</h1>
+    <div class="panel">
+      <p>The next 5 rounds will show the alerts in a different layout. How you type your answers stays the same.</p>
+      <div class="row"><button id="btn-continue-block">Continue</button></div>
+    </div>
+  </section>
+
+  <!-- DONE -->
+  <section id="screen-done" class="hidden">
+    <h1>All done, thank you!</h1>
+    <div class="panel">
+      <p>Please send your results file to the researcher. Use the button below to save it, or copy the text and paste it into a message.</p>
+      <p class="sub">Your participant code: <code id="pid-label"></code></p>
+      <div class="row">
+        <button id="btn-download">Download results (CSV)</button>
+        <button id="btn-copy" class="secondary">Copy results</button>
+      </div>
+      <p id="copy-msg" class="note"></p>
+      <textarea id="csv-box" readonly style="min-height:120px; margin-top:12px; font-size:12px;"></textarea>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Settings ----------
+  var DISPLAY_MS = 8000;
+  var ITEM_COUNTS = [3, 5, 7, 9, 11];
+  var PER_GROUP = 3; // alerts per category group, same structure in both conditions
+  var CATEGORIES = {
+    "FLUID": ["PUMP","VALVE","PIPE","TANK","NOZZLE","FILTER"],
+    "ELECTRICAL": ["FUSE","RELAY","SWITCH","CABLE","BATTERY","SENSOR"],
+    "MECHANICAL": ["GEAR","BELT","CHAIN","SHAFT","BEARING","SPRING"],
+    "HANDLING": ["CRANE","LIFT","ROLLER","PISTON","MOTOR","HOIST"],
+    "SAFETY": ["DOOR","BRAKE","LATCH","GUARD","ALARM","SIREN"],
+    "MACHINING": ["DRILL","PRESS","LASER","WELD","SAW","GRINDER"]
+  };
+
+  // ---------- Helpers ----------
+  function $(id) { return document.getElementById(id); }
+  function show(id) {
+    ["consent","instructions","ready","show","recall","feedback","practice-done","break","done"].forEach(function (s) {
+      $("screen-" + s).classList.add("hidden");
+    });
+    $("screen-" + id).classList.remove("hidden");
+    window.scrollTo(0, 0);
+  }
+  function rand(n) { return Math.floor(Math.random() * n); }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = rand(i + 1), t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function makePid() {
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = "P-";
+    for (var i = 0; i < 6; i++) s += chars[rand(chars.length)];
+    return s;
+  }
+  function csvEscape(v) {
+    v = String(v === undefined || v === null ? "" : v);
+    if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  }
+
+  // ---------- Alert generation ----------
+  // Same structure for both conditions: N alert words in ceil(N / PER_GROUP) category groups.
+  function generateAlerts(n) {
+    var nGroups = Math.ceil(n / PER_GROUP);
+    var cats = shuffle(Object.keys(CATEGORIES)).slice(0, nGroups);
+    var lists = {};
+    cats.forEach(function (c) { lists[c] = shuffle(CATEGORIES[c]); });
+    var alerts = [];
+    for (var i = 0; i < n; i++) {
+      var c = cats[i % nGroups];
+      alerts.push({ word: lists[c].shift(), group: c });
+    }
+    return alerts;
+  }
+
+  // ---------- Rendering ----------
+  function ungroupedOrder(alerts) {
+    var order = shuffle(alerts);
+    var tries = 0;
+    function adjacentRuns(arr) {
+      var c = 0;
+      for (var i = 1; i < arr.length; i++) if (arr[i].group === arr[i-1].group) c++;
+      return c;
+    }
+    while (alerts.length > 4 && adjacentRuns(order) > Math.floor(alerts.length / 3) && tries < 50) {
+      order = shuffle(alerts); tries++;
+    }
+    return order;
+  }
+  function lineHtml(a, matched) {
+    if (!matched) return '<div class="alert-line">' + a.word + '</div>';
+    return matched[a.word]
+      ? '<div class="alert-line ok"><span class="mark-ok">&#10003;</span>' + a.word + '</div>'
+      : '<div class="alert-line miss"><span class="mark-miss">&#10007;</span>' + a.word + '</div>';
+  }
+  function renderUngrouped(order, matched) {
+    var html = "";
+    order.forEach(function (a) { html += lineHtml(a, matched); });
+    return html;
+  }
+  function renderGrouped(alerts, matched) {
+    var byGroup = {};
+    alerts.forEach(function (a) { (byGroup[a.group] = byGroup[a.group] || []).push(a); });
+    var keys = Object.keys(byGroup).sort();
+    var html = "";
+    keys.forEach(function (k) {
+      html += '<div class="group"><div class="group-head">' + k + '</div>';
+      byGroup[k].forEach(function (a) { html += lineHtml(a, matched); });
+      html += '</div>';
+    });
+    return html;
+  }
+  function renderLayout(matched) {
+    return current.cond === "grouped" ? renderGrouped(current.alerts, matched) : renderUngrouped(current.order, matched);
+  }
+
+  // ---------- Scoring ----------
+  // Each typed line is matched to one shown word. Exact match, or one typo for words of 5+ letters.
+  function editDistance(a, b) {
+    var m = a.length, n = b.length, d = [], i, j;
+    for (i = 0; i <= m; i++) { d[i] = [i]; }
+    for (j = 1; j <= n; j++) { d[0][j] = j; }
+    for (i = 1; i <= m; i++) {
+      for (j = 1; j <= n; j++) {
+        d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+      }
+    }
+    return d[m][n];
+  }
+  function scoreResponse(text, alerts) {
+    var matched = {};
+    var nCorrect = 0, nIntrusions = 0, intrusions = [];
+    String(text || "").split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim().toUpperCase().replace(/[^A-Z]/g, "");
+      if (!line) return;
+      var hit = null;
+      alerts.forEach(function (a) {
+        if (matched[a.word]) return;
+        if (line === a.word) { hit = a; return; }
+        if (!hit && a.word.length >= 5 && editDistance(line, a.word) <= 1) { hit = a; }
+      });
+      if (hit) { matched[hit.word] = true; nCorrect++; } else { nIntrusions++; intrusions.push(raw.trim()); }
+    });
+    return { nCorrect: nCorrect, nIntrusions: nIntrusions, matched: matched, intrusions: intrusions };
+  }
+
+  // ---------- State ----------
+  var pid = makePid();
+  var results = [];
+  var plan = [];
+  var idx = -1;
+  var current = null;
+  var isPractice = true;
+  var recallStart = 0;
+
+  function buildPlan() {
+    var first = Math.random() < 0.5 ? "grouped" : "ungrouped";
+    var second = first === "grouped" ? "ungrouped" : "grouped";
+    plan = [];
+    ITEM_COUNTS.forEach(function (n) { plan.push({ n: n, cond: first, block: 1 }); });
+    ITEM_COUNTS.forEach(function (n) { plan.push({ n: n, cond: second, block: 2 }); });
+  }
+
+  function label() {
+    return isPractice ? "Practice round" : "Round " + (idx + 1) + " of " + plan.length;
+  }
+
+  function startRound(round) {
+    current = { n: round.n, cond: round.cond, block: round.block, alerts: generateAlerts(round.n) };
+    $("ready-label").textContent = label();
+    $("ready-progress").textContent = isPractice ? "Not scored" : "";
+    $("ready-text").textContent = isPractice
+      ? "Practice: 3 alerts will appear for 8 seconds."
+      : "Get ready. The alerts will appear for 8 seconds.";
+    show("ready");
+  }
+
+  function showAlerts() {
+    var dash = $("dash");
+    if (current.cond !== "grouped") current.order = ungroupedOrder(current.alerts);
+    dash.innerHTML = renderLayout(null);
+    $("show-label").textContent = label();
+    var bar = $("bar");
+    bar.style.transition = "none";
+    bar.style.transform = "scaleX(1)";
+    show("show");
+    void bar.offsetWidth;
+    bar.style.transition = "transform " + DISPLAY_MS + "ms linear";
+    bar.style.transform = "scaleX(0)";
+    setTimeout(function () {
+      dash.innerHTML = "";
+      $("recall-label").textContent = label();
+      $("recall-box").value = "";
+      show("recall");
+      recallStart = Date.now();
+      $("recall-box").focus();
+    }, DISPLAY_MS);
+  }
+
+  var pendingNext = null;
+  function showFeedback(sc) {
+    $("fb-label").textContent = label();
+    $("fb-score").textContent = sc.nCorrect + " of " + current.n + " correct";
+    $("fb-list").innerHTML = renderLayout(sc.matched);
+    var extras = "";
+    if (sc.intrusions.length) {
+      extras = "Not counted (not on the list, or repeated): " + sc.intrusions.map(function (t) {
+        return t.replace(/[<>&]/g, "");
+      }).join(", ");
+    }
+    $("fb-extras").textContent = extras;
+    $("btn-next").textContent = (!isPractice && idx === plan.length - 1) ? "Finish" : "Next";
+    show("feedback");
+  }
+
+  function submitRound() {
+    var text = $("recall-box").value;
+    var sc = scoreResponse(text, current.alerts);
+    var recallMs = Date.now() - recallStart;
+    if (isPractice) {
+      $("practice-result").textContent = "You got " + sc.nCorrect + " of " + current.n + " alerts right in the practice round.";
+      pendingNext = function () { show("practice-done"); };
+      showFeedback(sc);
+      return;
+    }
+    results.push({
+      participant_id: pid,
+      round: idx + 1,
+      block: current.block,
+      condition: current.cond,
+      n_items: current.n,
+      display_ms: DISPLAY_MS,
+      n_correct: sc.nCorrect,
+      n_intrusions: sc.nIntrusions,
+      accuracy: (sc.nCorrect / current.n).toFixed(4),
+      recall_ms: recallMs,
+      alerts_shown: current.alerts.map(function (a) { return a.word + "@" + a.group; }).join(" | "),
+      response: text.replace(/\r?\n/g, " / "),
+      timestamp: new Date().toISOString()
+    });
+    try { localStorage.setItem("recall_backup_" + pid, JSON.stringify(results)); } catch (e) {}
+    pendingNext = nextRound;
+    showFeedback(sc);
+  }
+
+  function nextRound() {
+    idx++;
+    if (idx >= plan.length) { finish(); return; }
+    if (idx === ITEM_COUNTS.length) { show("break"); return; }
+    startRound(plan[idx]);
+  }
+
+  function toCsv() {
+    var cols = ["participant_id","round","block","condition","n_items","display_ms","n_correct","n_intrusions","accuracy","recall_ms","alerts_shown","response","timestamp"];
+    var lines = [cols.join(",")];
+    results.forEach(function (r) {
+      lines.push(cols.map(function (c) { return csvEscape(r[c]); }).join(","));
+    });
+    return lines.join("\n");
+  }
+
+  function finish() {
+    $("pid-label").textContent = pid;
+    $("csv-box").value = toCsv();
+    show("done");
+  }
+
+  // ---------- Wiring ----------
+  $("consent-check").addEventListener("change", function () { $("btn-consent").disabled = !this.checked; });
+  $("btn-consent").addEventListener("click", function () { show("instructions"); });
+  $("btn-start-practice").addEventListener("click", function () {
+    isPractice = true;
+    startRound({ n: 3, cond: "ungrouped", block: 0 });
+  });
+  $("btn-show").addEventListener("click", showAlerts);
+  $("btn-submit").addEventListener("click", submitRound);
+  $("btn-next").addEventListener("click", function () { if (pendingNext) pendingNext(); });
+  $("btn-start-real").addEventListener("click", function () {
+    isPractice = false;
+    buildPlan();
+    idx = -1;
+    nextRound();
+  });
+  $("btn-continue-block").addEventListener("click", function () { startRound(plan[idx]); });
+  $("btn-download").addEventListener("click", function () {
+    var blob = new Blob([toCsv()], { type: "text/csv" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "recall_results_" + pid + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+  $("btn-copy").addEventListener("click", function () {
+    var box = $("csv-box");
+    box.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    $("copy-msg").textContent = ok ? "Copied. Paste it into a message to the researcher." : "Could not copy automatically. Select the text in the box and copy it.";
+  });
+
+  // test hook for the developer's automated check
+  window.__recall = { getCurrent: function () { return current; }, getResults: function () { return results; } };
+})();
+</script>
+</body>
+</html>
